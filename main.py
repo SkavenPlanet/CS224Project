@@ -8,6 +8,17 @@ from PyQt5.QtCore import *
 from PyQt5.QtSvg import QSvgWidget
 from PyQt5.QtWidgets import *
 
+from nemo.collections.nlp.models import IntentSlotClassificationModel
+from nemo.collections import nlp as nemo_nlp
+from nemo.utils.exp_manager import exp_manager
+from nemo.utils import logging
+
+import os
+import wget
+import torch
+import pytorch_lightning as pl
+from omegaconf import OmegaConf
+
 pieces = {'p' : 'pawn', 'b' : 'bishop', 'k' : 'king', 'q' : 'queen', 'r' : 'rook', 'n' : 'knight'}
 
 #dictate_move slots
@@ -126,6 +137,25 @@ class MainWindow(QWidget):
 
 
 if __name__ == "__main__":
+    config_file = "intent_slot_classification_config.yaml"
+    config = OmegaConf.load(config_file)
+
+    nlu_model = IntentSlotClassificationModel.restore_from(restore_path="nlumodel.nemo")
+
+    queries = [
+        'set alarm for seven thirty am',
+        'lower volume by fifty percent',
+        'what is my schedule for tomorrow',
+    ]
+
+    pred_intents, pred_slots = nlu_model.predict_from_examples(queries, config.model.test_ds)
+
+    logging.info('The prediction results of some sample queries with the trained model:')
+    for query, intent, slots in zip(queries, pred_intents, pred_slots):
+        logging.info(f'Query : {query}')
+        logging.info(f'Predicted Intent: {intent}')
+        logging.info(f'Predicted Slots: {slots}')
+
     chessGui = QApplication(sys.argv)
     window = MainWindow()
     window.show()
